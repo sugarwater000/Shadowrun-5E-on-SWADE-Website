@@ -1,0 +1,12 @@
+{
+  "name": "running-the-shadow-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A themed message board, character sheets, dice roller and shared battle map for tabletop games, running on Cloudflare Pages, D1 and R2.",
+  "license": "MIT",
+  "scripts": {
+    "build": "python3 build.py",
+    "check": "node tools/check.js",
+    "test": "node --no-warnings tests/server.test.mjs"
+  }
+}

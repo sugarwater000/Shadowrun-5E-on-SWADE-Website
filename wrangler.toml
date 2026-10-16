@@ -1,0 +1,26 @@
+# Your project name. It becomes your address: <name>.pages.dev, so it must be unique. Lowercase letters, numbers and dashes.
+name = "my-rss-bbs"
+pages_build_output_dir = "public"
+compatibility_date = "2024-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bbs-db"
+database_id = "PASTE-YOUR-DATABASE-ID-HERE"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "bbs-images"
+
+# Lets the GM look inside the daily backups and put things back (Restore from backup in the menu).
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "bbs-backups"
+
+[vars]
+# The GM. Use the email you log in with. For several GMs: "a@example.com, b@example.com"
+OWNER_EMAIL = "you@example.com"
+
+# Optional extra security (see the setup notes): uncomment and fill in both lines, then redeploy.
+# TEAM_DOMAIN = "yourteamname.cloudflareaccess.com"
+# POLICY_AUD = "paste-the-application-audience-tag-here"

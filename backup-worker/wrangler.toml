@@ -1,0 +1,20 @@
+name = "shadowrun-bbs-backup"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+# Runs every day at 10:00 UTC (3:00 AM Pacific in summer, 2:00 AM in winter).
+[triggers]
+crons = ["0 10 * * *"]
+
+# Same database as the main site. Copy the database_id from the main wrangler.toml.
+[[d1_databases]]
+binding = "DB"
+database_name = "bbs-db"
+database_id = "PASTE-YOUR-DATABASE-ID-HERE"
+
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "bbs-backups"
+
+[vars]
+KEEP_DAYS = "30"
