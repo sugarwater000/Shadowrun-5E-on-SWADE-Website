@@ -1,0 +1,75 @@
+# Load order. Each file is plain JavaScript that is pasted, in this order, between main_a.js and main_b.js.
+data_savage_worlds.js
+tabletop_base.js
+rules_engine.js
+sheet_edges_ui.js
+edge_library.js
+savaged_import.js
+data_item_effects.js
+item_effects.js
+combat_extra_dice.js
+combat_options.js
+sheet_states.js
+ticker_flavor.js
+drones.js
+ammo.js
+sheet_history.js
+scene_and_stats.js
+backups_restore.js
+play_mode.js
+heat_rep.js
+round_timers.js
+create_character.js
+sheet_duplicate.js
+cyberware_strain.js
+gm_dashboard.js
+districts.js
+gm_broadcast.js
+vehicles.js
+sheet_layout.js
+custom_gear.js
+search_global.js
+quick_roll_bar.js
+mobile.js
+atmosphere.js
+scene_art.js
+paste_images.js
+glossary.js
+flair.js
+safe_house.js
+portraits.js
+discord_mirror.js
+saved_muted_contrast.js
+social_party_glance.js
+scene_character.js
+fumble.js
+help.js
+card_unread.js
+card_ticker.js
+search_better.js
+factions.js
+clue_board.js
+home.js
+tabletop_core.js @lazy
+tabletop_picker.js @lazy
+wide_pages.js
+tabletop_combat.js @lazy
+tabletop_walls_vision.js @lazy
+tabletop_extras.js @lazy
+clue_board_extras.js
+nav_groups.js
+recycle_bin.js
+storage_panel.js
+ui_helpers.js
+quick_switcher.js
+tabletop_menu.js @lazy
+data_street_events.js
+alarm_clocks.js
+street_events.js
+backdrop_library.js
+tabletop_range.js @lazy
+tabletop_templates.js @lazy
+tabletop_attack.js @lazy
+tabletop_fight.js @lazy
+tabletop_archetypes.js @lazy
+tabletop_rigs.js @lazy

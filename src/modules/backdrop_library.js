@@ -1,0 +1,46 @@
+// ---- Backdrop library (GM): hide, rename, re-tag or replace the built-in scene pictures, and add pictures of your own.
+// Data: collection "artlib". A document named after a built-in key is an override of that picture ({name,tags,img,hide});
+// any other document with custom:1 is the GM's own picture ({name,tags,img}). The picking logic lives in scene_art.js.
+let artF={q:'',v:''};
+function artView(){if(!isOwner)return;$('#view').innerHTML='<div id="artroot"></div>';artDraw()}
+function artDraw(){const r=$('#artroot');if(!r)return;const L=artAll(),nh=L.filter(i=>i.hide).length,nm=L.filter(i=>i.own).length,nr=L.filter(i=>!i.own&&i.img).length,q=artF.q.toLowerCase();
+ let rows=L.filter(i=>(!artF.v||(artF.v==='hid'&&i.hide)||(artF.v==='mine'&&i.own)||(artF.v==='rep'&&!i.own&&i.img)||(artF.v==='bi'&&!i.own))&&(!q||(i.n+' '+i.t).toLowerCase().includes(q)));
+ r.innerHTML=`<div class="bar"><h2>🖼 BACKDROP LIBRARY</h2><div><button class="btn grn" id="arA">+ Add pictures</button><input type="file" id="arF" accept="image/*" multiple hidden></div></div>
+ <div class="hint" style="margin-bottom:10px">These are the pictures you can put behind a scene. <b>Hide</b> one to keep it out of the lists and out of ✨ Match the place. <b>Edit</b> one to rename it, change its words or swap in your own picture. Add as many of your own as you like. The <b>words</b> are what ✨ Match the place looks for, so add place names, weather or time of day (for example: <i>docks harbor rain night</i>).</div>
+ <div class="evf" style="grid-template-columns:1fr 2fr"><div><label>SHOW</label><select id="arv"><option value="">All (${L.length})</option><option value="bi" ${artF.v==='bi'?'selected':''}>Built-in</option><option value="mine" ${artF.v==='mine'?'selected':''}>Mine (${nm})</option><option value="rep" ${artF.v==='rep'?'selected':''}>Replaced built-ins (${nr})</option><option value="hid" ${artF.v==='hid'?'selected':''}>Hidden (${nh})</option></select></div><div><label>SEARCH</label><input id="arq" value="${esc(artF.q)}" placeholder="type a name or a word"></div></div>
+ <div class="artg artm" style="margin-top:10px;max-height:none">${rows.map(i=>`<div class="art artc${i.hide?' hid':''}" data-artc="${esc(i.k)}"><span class="at2" style="background-image:url(&quot;${artUri(i.k)}&quot;)"></span><b>${esc(i.n)}</b><span class="meta" style="padding:0 4px">${i.own?'Mine':i.img?'Built-in, replaced':'Built-in'}${i.hide?' · hidden':''}</span><span class="meta arw" style="padding:0 4px">${esc(String(i.t||'').slice(0,60))||'no words yet'}</span><span class="arb"><button type="button" class="btn sm" data-ar="ed:${esc(i.k)}">✎ Edit</button> <button type="button" class="btn sm" data-ar="hd:${esc(i.k)}">${i.hide?'Show':'Hide'}</button>${i.own?` <button type="button" class="btn sm mg" data-ar="del:${esc(i.k)}" aria-label="Delete ${esc(i.n)}">🗑</button>`:''}</span></div>`).join('')||'<div class="meta">Nothing matches.</div>'}</div>`;
+ $('#arv').onchange=e=>{artF.v=e.target.value;artDraw()};
+ $('#arq').oninput=e=>{artF.q=e.target.value;clearTimeout(artDraw.t);artDraw.t=setTimeout(()=>{artDraw();const i=$('#arq');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)};
+ $('#arA').onclick=()=>$('#arF').click();$('#arF').onchange=ev=>{const fs=[...ev.target.files];ev.target.value='';artAddMany(fs)};
+ r.onclick=e=>{const b=e.target.closest('[data-ar]');if(!b)return;const [a,k]=[b.dataset.ar.split(':')[0],b.dataset.ar.slice(b.dataset.ar.indexOf(':')+1)];if(a==='ed')artEdit(k);else if(a==='hd')artHide(k);else if(a==='del')artDel(k)}}
+// write a picture's override document; an override that says nothing is removed, which puts the original back
+async function artPut(k,data){const o=artOv(k),d={};Object.keys(data).forEach(x=>{if(data[x]!==''&&data[x]!==false&&data[x]!=null)d[x]=data[x]});
+ if(Object.keys(d).length){d.ts=Date.now();await db.doc('artlib/'+k).set(d)}else if(o)await db.doc('artlib/'+k).delete()}
+async function artUp(f){if(!/^image\//.test(f.type||''))throw new Error('"'+(f.name||'That file')+'" is not a picture.');if(!assets)throw new Error('Picture upload is not available right now.');const up=await assets.upload(await shrink(f));return up.id}
+async function artAddMany(fs){if(!fs.length)return;fs=fs.slice(0,8);const b=$('#arA');if(b)b.disabled=true;let ok=0,bad='';const ids=[];
+ for(let n=0;n<fs.length;n++){if(b)b.textContent='Uploading '+(n+1)+' of '+fs.length+'...';
+  try{const id=await artUp(fs[n]);const ref=await db.collection('artlib').add({custom:1,name:String(fs[n].name||'Picture').replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' ').trim().slice(0,40)||'Picture',tags:'',img:id,by:handle||'GM',ts:Date.now()+n});ids.push(ref.id);ok++}catch(e){bad=e.message||e.code||'Upload failed'}}
+ const b2=$('#arA');if(b2){b2.disabled=false;b2.textContent='+ Add pictures'}
+ if(bad)alert((ok?ok+' added. ':'')+'Problem: '+bad);else if(ok)undoBar(ok+' picture'+(ok===1?'':'s')+' added. Click Edit to give '+(ok===1?'it':'them')+' words for ✨ Match the place.',()=>Promise.all(ids.map(i=>db.doc('artlib/'+i).update({deleted:true,delAt:Date.now(),delBy:handle||'GM'}))))}
+async function artHide(k){const it=artItem(k);if(!it)return;try{
+ if(it.own)await db.doc('artlib/'+k).update({hide:!it.hide});else{const o=artOv(k)||{};await artPut(k,{name:o.name,tags:typeof o.tags==='string'?o.tags:'',img:o.img,hide:!it.hide})}
+ artDraw()}catch(e){alert('Could not save: '+(e.message||e.code))}}
+async function artDel(k){const it=artItem(k);if(!it||!it.own)return;const live=scnD&&scnD.atmImg==='art:'+k;
+ if(!await ask('Delete "'+it.n+'"?'+(live?' The scene on screen right now is using it.':'')+' It can be put back from the Recycle bin for 30 days.','Delete'))return;
+ try{await db.doc('artlib/'+k).update({deleted:true,delAt:Date.now(),delBy:handle||'GM'});undoBar('Picture deleted.',()=>db.doc('artlib/'+k).update({deleted:false}));artDraw()}catch(e){alert('Could not delete: '+(e.message||e.code))}}
+function artEdit(k){const it=artItem(k);if(!it)return;const o=artOv(k)||{};let img=it.own?it.img:(o.img||''),busy=false,reset=false;
+ const prev=()=>{const u=img?'/_blob/'+img:(it.own?'':artUri(k).replace(/"/g,''));const p=$('#arpv');if(p)p.style.backgroundImage=u?'url("'+u+'")':''};
+ $('#modal').innerHTML=`<div class="modal"><div class="box"><h2>EDIT BACKDROP PICTURE</h2><div style="border:2px solid var(--line);margin-bottom:8px"><span id="arpv"></span></div>
+ <label>NAME</label><input id="arn" maxlength="40" value="${esc(it.n)}"><label>WORDS FOR ✨ MATCH THE PLACE</label><input id="art" maxlength="160" value="${esc(it.t)}" placeholder="docks harbor rain night"><div class="hint">Separate words with spaces. When the scene's place, weather or time contains one of these words, this picture becomes a likely pick.</div>
+ <div style="margin:8px 0"><button type="button" class="btn sm" id="aru">📎 ${it.own?'Replace the picture':'Use my own picture instead'}</button><input type="file" id="arff" accept="image/*" hidden> ${!it.own?'<button type="button" class="btn sm" id="arr" '+(img?'':'disabled')+'>↩ Back to the original picture</button> ':''}<span class="meta" id="arm"></span></div>
+ <div style="margin-top:12px"><button class="btn grn" id="ars">Save</button> <button class="btn" id="arx">Cancel</button>${!it.own&&it.ov?' <button class="btn mg" id="arz" title="Put the name, words and picture back as they came">Reset everything</button>':''}</div></div></div>`;prev();
+ $('#arx').onclick=()=>{$('#modal').innerHTML=''};
+ $('#aru').onclick=()=>$('#arff').click();
+ $('#arff').onchange=async ev=>{const f=ev.target.files[0];ev.target.value='';if(!f)return;busy=true;$('#arm').textContent='Uploading...';try{img=await artUp(f);reset=false;$('#arm').textContent='Picture ready. Press Save.';const r=$('#arr');if(r)r.disabled=false;prev()}catch(e){$('#arm').textContent='';alert('Upload failed: '+(e.message||e.code))}busy=false};
+ const rr=$('#arr');if(rr)rr.onclick=()=>{img='';$('#arm').textContent='The original picture will come back when you press Save.';rr.disabled=true;prev()};
+ const rz=$('#arz');if(rz)rz.onclick=async()=>{if(!await ask('Put "'+it.n+'" back exactly as it came?','Reset'))return;try{await db.doc('artlib/'+k).delete();$('#modal').innerHTML='';artDraw()}catch(e){alert('Could not reset: '+(e.message||e.code))}};
+ $('#ars').onclick=async()=>{if(busy)return alert('Wait for the upload to finish.');const n=$('#arn').value.trim(),t=$('#art').value.trim();if(!n)return alert('Give the picture a name.');
+  try{if(it.own){await db.doc('artlib/'+k).update({name:n,tags:t,img})}
+   else await artPut(k,{name:n!==ART[k].n?n:'',tags:t!==ART[k].t?t:'',img,hide:it.hide});
+   $('#modal').innerHTML='';artDraw()}catch(e){alert('Could not save: '+(e.message||e.code))}}}
+(function(){const st=document.createElement('style');st.id='arlcss';st.textContent=`.artm .artc{position:relative}.artm .artc.hid .at2,.artm .artc.hid b{opacity:.4}#arpv{display:block;width:100%;aspect-ratio:16/6;background-size:cover;background-position:center;background-color:#10121c}.artm .arb{display:flex;gap:4px;flex-wrap:wrap;padding:2px 4px 6px}.artm .arw{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.artm{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}`;document.head.appendChild(st)})();

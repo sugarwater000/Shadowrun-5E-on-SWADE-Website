@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUNNING THE SHADOW SYSTEM (RSS)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap">
+<style>@@CSS@@</style></head>
+<body>
+<header>
+<h1><span class="ht">RUNNING THE SHADOW SYSTEM (</span>RSS<span class="ht">)</span><small>// UNLICENSED NODE · ENCRYPTION: NONE · EVERYONE'S WATCHING</small></h1>
+<div id="rollhud" class="rh" title="Latest roll at the table. Click to open the Dice Roller."></div>
+<div class="hud"><button class="btn sm" id="menuBtn" aria-label="Open the page menu">☰ Menu</button><button class="btn sm" id="qkBtn" title="Jump to any page, note or token (Ctrl+K or /)" aria-label="Quick switcher">🔍</button><input id="q" placeholder="search the grid..." style="width:170px"><span>HANDLE: <b id="me">—</b></span><span>ONLINE: <b id="onl">—</b></span><span class="hrt" title="The current real-world time where you are">REAL TIME: <b id="rlt">—</b></span><span>NET TIME: <b id="clk" class="clkb" role="button" tabindex="0" aria-label="In-game time. Press to set it.">—</b></span><button class="btn sm" id="helpQ" title="Help for this page" aria-label="Help for this page">?</button><button class="btn sm" id="setBell" title="Mentions and private messages for you">🔔<span id="bellN"></span></button><button class="btn sm" id="setRolls" title="Open the roll history panel">🎲 Rolls</button><button class="btn sm" id="setMore" title="Profile, display, clock, help and backup" aria-label="Settings menu">⚙ Settings</button><button class="btn sm mg" id="setOut" title="Sign out of the Matrix BBS on this device" aria-label="Sign out" style="padding:0 8px">⏻</button></div>
+</header>
+<div id="moreMenu"><button class="btn sm" id="setH">👤 Profile</button><button class="btn sm" id="setP">🎨 Display</button><button class="btn sm" id="setFlair">✨ Flair</button><button class="btn sm" id="setC">🕒 Set clock</button><button class="btn sm" id="setHelp">❓ Help</button><hr class="gm"><button class="btn sm gm" id="bkDl" title="Download everything as one file">⬇ Backup (GM)</button><button class="btn sm gm" id="bkPick" title="Look inside the nightly backups and put back only what you choose">⏪ Restore from backup (GM)</button><button class="btn sm gm" id="bkUp" title="Put a backup file back on the site">⬆ Restore (GM)</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+<div id="tick"><div class="tkr"><span id="tickw"><span id="tickt"></span></span><button class="btn sm" id="tickE" title="edit headlines">✎</button></div><div class="tkc"><span id="scn"></span><span id="alm" role="button" tabindex="0"></span><span id="clkc" role="button" tabindex="0"></span><span id="evc" role="button" tabindex="0" title="Roll a random street event (GM)"></span><span id="ini" title="Combat is on. Click to open the Initiative tracker."></span><span id="wx" title="Seattle right now (made up, but the traffic is real enough)"></span></div></div>
+<div id="pinbar"></div>
+<div id="digest"></div>
+<main><nav id="nav"></nav><div id="scroll"><section id="view"></section></div></main>
+<div id="boot"><canvas id="bootrain"></canvas><div id="boottxt"></div><div class="bs">click to skip</div></div>
+<div id="modal"></div>
+<script>
+(()=>{let shown=false;const show=m=>{if(shown||/ResizeObserver/i.test(m||''))return;shown=true;const d=document.createElement('div');d.style.cssText='position:fixed;left:12px;bottom:12px;max-width:340px;z-index:200;background:#0b1018;border:1px solid #ff3b3b;color:#ffb0b0;padding:10px 12px;font:13px monospace';d.innerHTML='Something went wrong on this page. Try refreshing (Ctrl+Shift+R). If it keeps happening, tell the GM what you were doing.<br><a style="color:#00f0d0;cursor:pointer">Dismiss</a>';d.querySelector('a').onclick=()=>d.remove();document.body.appendChild(d)};
+window.addEventListener('error',e=>{if(e.message)show(e.message)});window.addEventListener('unhandledrejection',e=>show(String(e.reason&&e.reason.message||e.reason||'')))})();
+</script>
+<script>
+// Cloudflare adapter: gives the page the same db/user/assets/room tools it had on Claude, backed by /api.
+(()=>{
+const A=(p,body)=>fetch('/api/'+p,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body||{})}).then(async r=>{if(!r.ok)throw{code:'unavailable',status:r.status,message:await r.text()};return r.json()}).catch(e=>{if(e&&e.code==='unavailable')throw e;throw{code:'unavailable',status:0,message:'Network error: '+((e&&e.message)||e)}});
+const idb=new Promise(res=>{try{const q=indexedDB.open('srbbs',1);q.onupgradeneeded=()=>q.result.createObjectStore('c');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch(e){res(null)}});
+const cget=async k=>{const d=await idb;if(!d)return null;return new Promise(r=>{try{const q=d.transaction('c').objectStore('c').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)}catch(e){r(null)}})};
+const cput=async(k,v)=>{const d=await idb;if(!d)return;try{d.transaction('c','readwrite').objectStore('c').put(v,k)}catch(e){}};
+let meId='';const subs=new Map();let n=0,busy=false,wv=0,gvc=0;
+const snapD=(id,d)=>({id,exists:d!=null,data:()=>d==null?undefined:d,metadata:{}});
+const clone=x=>x===undefined?undefined:JSON.parse(JSON.stringify(x));
+const emit=s=>{s.cb({docs:[...s.map].map(([id,d])=>snapD(id,d)),size:s.map.size,empty:!s.map.size,docChanges:()=>[],metadata:{}});clearTimeout(s.ct);s.ct=setTimeout(()=>cput('v1:'+meId+':'+s.path,{map:[...s.map],since:s.since}),2500)};
+/* Show our own change at once, as soon as the server accepts it, instead of waiting for the next sync to bring it back. */
+const lcl=(p,fn,seed)=>{const i=p.lastIndexOf('/'),coll=p.slice(0,i),id=p.slice(i+1);for(const s of subs.values()){try{
+  if(s.t==='col'&&s.path===coll&&s.got){const v=fn(s.map.get(id));if(v===undefined){if(s.map.delete(id))emit(s)}else{s.map.set(id,v);emit(s)}}
+  else if(s.t==='doc'&&s.path===p&&s.last!==undefined){let o=null;try{o=JSON.parse(s.last)}catch(e){}let v=fn(o==null?undefined:o);if(v===undefined)v=seed;const j=JSON.stringify(v===undefined?null:v);if(j!==s.last){s.last=j;s.cb(snapD(id,v===undefined?null:v))}}
+ }catch(e){}}};
+async function poll(){if(busy||!subs.size)return;busy=true;try{
+ const v0=wv,res=await Promise.race([A('sync',{gv:(gvc&&[...subs.values()].every(s=>s.t==='doc'?s.last!==undefined:s.got))?gvc:0,items:[...subs.values()].map(s=>({k:s.k,t:s.t,path:s.path,since:s.since}))}),new Promise((_,rj)=>setTimeout(()=>rj(new Error('sync timed out')),20000))]);
+ if(v0!==wv){busy=false;setTimeout(poll,400);return}
+ if(res&&res._same){busy=false;return}
+ for(const s of subs.values()){const r=res[s.k];if(!r)continue;
+  if(s.t==='doc'){const j=JSON.stringify(r.data);if(j!==s.last){s.last=j;s.cb(snapD(s.path.split('/').pop(),r.data))}}
+  else{let ch=!s.init;for(const d of r.docs){if(d.deleted){if(s.map.delete(d.id))ch=true}else if(JSON.stringify(s.map.get(d.id))!==JSON.stringify(d.data)){s.map.set(d.id,d.data);ch=true}}
+   const first=!s.got;s.got=1;s.since=r.since;s.init=1;if(ch||first){s.cb({docs:[...s.map].map(([id,d])=>snapD(id,d)),size:s.map.size,empty:!s.map.size,docChanges:()=>[],metadata:{}});clearTimeout(s.ct);s.ct=setTimeout(()=>cput('v1:'+meId+':'+s.path,{map:[...s.map],since:s.since}),2500)}}}
+gvc=(res&&res._gv)||0;}catch(e){}busy=false}
+window.__poll=poll;
+/* Be gentle on the server: while nobody is touching the page, check for changes less often (the live pages, Tabletop, Initiative and Dice, stay quick). Any click, key or touch brings it straight back. */
+let lastAct=Date.now(),tk=0;const act=()=>{const n=Date.now();if(n-lastAct>45000)setTimeout(poll,0);lastAct=n};['pointerdown','keydown','wheel','touchstart'].forEach(k=>addEventListener(k,act,{passive:true,capture:true}));addEventListener('pointermove',()=>{lastAct=Date.now()},{passive:true,capture:true});
+window.__idle=ms=>{lastAct=Date.now()-ms};window.__pollEvery=()=>{const idle=Date.now()-lastAct,b=typeof board==='string'?board:'';return /^(__tbl|__init|__dice)$/.test(b)||idle<180000?1:idle<600000?5:10};
+setInterval(()=>{if(document.hidden)return;if(++tk>=window.__pollEvery()){tk=0;poll()}},3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});window.addEventListener('online',()=>poll());
+const sub=(t,path,cb)=>{const k='s'+(++n),s={k,t,path,cb,since:0,map:new Map()};subs.set(k,s);(async()=>{try{await me}catch(e){}if(t==='col'&&path==='posts'||t==='col'&&!/^data\//.test(path)){const c=await cget('v1:'+meId+':'+path);if(c&&c.map&&!s.init){s.map=new Map(c.map);s.since=c.since||0;s.init=1;cb({docs:[...s.map].map(([id,d])=>snapD(id,d)),size:s.map.size,empty:!s.map.size,docChanges:()=>[],metadata:{}},{fromCache:true})}}poll()})();return()=>subs.delete(k)};
+class Doc{constructor(p){this.path=p;this.id=p.split('/').pop()}
+ async get(){const r=await A('sync',{items:[{k:'g',t:'doc',path:this.path}]});return snapD(this.id,r.g.data)}
+ async set(d){wv++;try{await A('doc',{path:this.path,data:d})}finally{wv++}try{lcl(this.path,()=>clone(d),clone(d))}catch(e){}poll()}
+ async update(d){wv++;let r;try{r=await A('doc',{path:this.path,data:d,merge:1})}finally{wv++}try{if(!(r&&r.skipped))lcl(this.path,o=>o?{...o,...clone(d)}:undefined,clone(d))}catch(e){}poll()}
+ async delete(){wv++;try{await A('doc',{path:this.path,del:1})}finally{wv++}try{lcl(this.path,()=>undefined,null)}catch(e){}poll()}
+ onSnapshot(cb){return sub('doc',this.path,cb)}
+ collection(p){return new Col(this.path+'/'+p)}}
+class Col{constructor(p){this.path=p}
+ doc(id){return new Doc(this.path+'/'+id)}
+ async add(d){wv++;let r;try{r=await A('add',{path:this.path,data:d})}finally{wv++}try{lcl(this.path+'/'+r.id,()=>clone(d))}catch(e){}poll();return new Doc(this.path+'/'+r.id)}
+ onSnapshot(cb){return sub('col',this.path,cb)}}
+const room=m=>{let cur=null,peers=[];const hs=[];
+ const tick=async()=>{try{const r=await A('presence',{data:cur});peers=r.peers.map(p=>({...p,isMe:p.by===m.id}));hs.forEach(h=>h({peers}))}catch(e){}};
+ setInterval(()=>{if(!document.hidden)tick()},15000);setTimeout(tick,800);
+ return{presence:async q=>{cur=q;tick()},peers:()=>peers,onPeers:h=>{hs.push(h);return()=>{}}}};
+window.meErr=null;const me=A('me');me.then(m=>{meId=m.id}).catch(e=>{window.meErr=e});
+window.claude={use:async name=>{try{const m=await me;meId=m.id;
+ if(name==='user')return{id:async()=>m.id,isOwner:async()=>m.isOwner,canEdit:async()=>true};
+ if(name==='db')return{doc:p=>new Doc(p),collection:p=>new Col(p)};
+ if(name==='assets')return{upload:async b=>{const r=await fetch('/api/upload',{method:'POST',headers:{'content-type':b.type||'application/octet-stream','x-filename':encodeURIComponent(b.name||'file')},body:b});if(!r.ok){let t='Upload failed';try{t=(await r.json()).error}catch(e){}throw{message:t}}return r.json()}};
+ if(name==='room')return room(m)}catch(e){}return null}};
+})();
+</script>
+<script>
